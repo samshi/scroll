@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <script src="jsob_core.js"></script>
+  <script src="video.js"></script>
+  <style>
+    html, body, div {
+      margin: 0;
+      padding: 0;
+    }
+
+    #control {
+      position: fixed;
+      font-size: 20px;
+      left: 20px;
+      top: 20px;
+    }
+
+    button {
+      font-size: 20px;
+    }
+
+    #main {
+      overflow: auto;
+    }
+
+    #basediv {
+      font-size: 20px;
+      text-align: center;
+    }
+
+  </style>
+</head>
+<body>
+<div id="3dbox"></div>
+<div id="control">
+  <button id="move_up">move_up</button>
+  <button id="move_down">move_down</button>
+  <button id="move_left">move_left</button>
+  <button id="move_right">move_right</button>
+  <button id="move_stop">move_stop</button>
+  <div id="msg"></div>
+  <div style='border:1px solid red'>
+    <video id='video' style="height:200px;float:right;"
+           controls preload='none'
+           mediagroup='myVideoGroup'
+           poster="https://media.w3.org/2010/05/sintel/poster.png">
+      <!--
+            <source id='mp4'
+              src="../sintel/trailer.mp4"
+              type='video/mp4'>
+            <source id='webm'
+              src="../sintel/trailer.webm"
+              type='video/webm'>
+      -->
+      <source id='mp4'
+              src="trailer.mp4"
+              type='video/mp4'>
+
+      <p>Your user agent does not support the HTML5 Video element.</p>
+    </video>
+    <div id='buttons'>
+      <button onclick="getController().load()">load()</button>
+      <button onclick="getController().play()">play()</button>
+      <button onclick="getController().pause()">pause()</button>
+      <br>
+      <button onclick="getController().playbackRate++">playbackRate++</button>
+      <button onclick="getController().playbackRate--">playbackRate--</button>
+      <button onclick="getController().playbackRate+=0.1">playbackRate+=0.1</button>
+      <button onclick="getController().playbackRate-=0.1">playbackRate-=0.1</button>
+      <br>
+      <button onclick="getController().currentTime+=10">currentTime+=10</button>
+      <button onclick="getController().currentTime-=10">currentTime-=10</button>
+      <button onclick="getController().currentTime=50">currentTime=50</button>
+      <br>
+      <button onclick="getController().volume+=0.1">volume+=0.1</button>
+      <button onclick="getController().volume-=0.1">volume-=0.1</button>
+      <button onclick="getController().muted=true">muted=true</button>
+      <button onclick="getController().muted=false">muted=false</button>
+      <!--<button onclick="switchVideo(0);">Sintel teaser</button>-->
+      <!--<button onclick="switchVideo(1);">Bunny trailer</button>-->
+      <!--<button onclick="switchVideo(2);">Bunny movie</button>-->
+      <!--<button onclick="switchVideo(3);">Test movie</button>-->
+    </div>
+
+    <table border="1">
+      <caption>Media Events</caption>
+      <tbody id='events'>
+      </tbody>
+    </table>
+    <table border="1">
+      <caption>Media Properties</caption>
+      <tbody id='properties'>
+      </tbody>
+    </table>
+
+    <table border="1">
+      <caption>MediaController Events</caption>
+      <tbody id='mc_events'>
+      </tbody>
+    </table>
+    <table border="1">
+      <caption>MediaController Properties</caption>
+      <tbody id='mc_properties'>
+      </tbody>
+    </table>
+
+    <table border="1" id='canPlayType'>
+      <caption>canPlayType</caption>
+      <tbody id='m_video'>
+      </tbody>
+    </table>
+
+    <table border="1" id='tracks'>
+      <caption>Tracks</caption>
+      <tbody>
+      <tr>
+        <th>Audio</th>
+        <th>Video</th>
+        <th>Text</th>
+      </tr>
+      <tr>
+        <td id='m_audiotracks' class='false'>?</td>
+        <td id='m_videotracks' class='false'>?</td>
+        <td id='m_texttracks' class='false'>?</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div id="main">
+  <div id="basediv"></div>
+</div>
+</body>
+</html>
+<script>
+
+  $(function(){
+    iw = $.IW();
+    ih = $.IH();
+    console.log(iw, ih);
+
+    mw = iw;
+    mh = iw * 3;
+
+    $('#main').S({
+      W: iw,
+      H: ih
+    });
+
+    $('#basediv').S({
+      W: iw + mw,
+      H: ih + mh
+    });
+
+    getController().load();
+
+    main.onscroll   = function(){
+      showScroll();
+    };
+    main.scrollLeft = mw;
+
+    createBox();
+
+    createControl();
+
+    //  hash = window.location.hash;
+    //  if(hash){
+    //    window.location.hash = '';
+    //  }
+    //  window.location.hash = hash;
+    //  console.log(hash);
+  });
+
+  function showScroll(){
+    var sl = main.scrollLeft;
+    var st = main.scrollTop;
+    var rl = sl / mw;
+    var rt = st / mw;
+    if(rt <= 2){
+      box.S({
+        //      L: (mw - box.W_) * sl / mw,
+        //      T: (mh - box.H_) * st / mh
+        RY: 360 * rl,
+        RX: 360 * rt
+      });
+    }
+
+    if(rt > 1){
+      box_o.S({
+        //        L: iw / 2,
+        T: ih / 2 - (rt - 1) * mw
+      });
+//      msg.innerHTML = box_o.T_;
+//      return;
+    }
+
+    msg.innerHTML = 'left:' + sl + '; top:' + st;
+    msg.innerHTML += '; RX:' + box.RX_ + '; RY:' + box.RY_;
+
+    document._video.currentTime = document._video.duration * st / (mh-ih);
+    console.log(st, mh, document._video.duration);
+  }
+
+  function move(){
+    var pre_x       = main.scrollLeft;
+    var pre_y       = main.scrollTop;
+    now_x += dir_x;
+    now_y += dir_y;
+    main.scrollLeft = now_x;
+    main.scrollTop  = now_y;
+    console.log(now_x, now_y, main.scrollLeft, main.scrollTop);
+    showScroll();
+
+    clearTimeout(window.timer);
+    if(main.scrollLeft != pre_x || main.scrollTop != pre_y){
+      timer = setTimeout(move, 1000 / 60);
+    }
+    else{
+      console.log('stop');
+    }
+  }
+
+  function createBox(){
+    var x = 200;
+    var y = 200;
+    var z = 200;
+    var a = 0.8;
+
+    box_o = $('#3dbox').SET3D(800, '50% 50%')
+      .S({
+        P: 'absolute',
+        L: iw / 2,
+        T: ih / 2,
+        W: 0,
+        H: 0,
+        BG: '#00cc00'
+      });
+
+    box = $.C(box_o).SET3D(0, '50% 50%');
+
+    $.C(box, {
+      W: x + x,
+      H: y + y,
+      L: -x,
+      T: -y,
+      TZ: y,
+      RX: 90,
+      BG: '#F00',
+      A: a
+    });
+    $.C(box, {
+      W: x + x,
+      H: y + y,
+      L: -x,
+      T: -y,
+      TZ: y,
+      RX: -90,
+      BG: '#0F0',
+      A: a
+    });
+    $.C(box, {
+      W: x + x,
+      H: y + y,
+      L: -x,
+      T: -y,
+      TZ: z,
+      RY: 90,
+      BG: '#00F',
+      A: a
+    });
+    $.C(box, {
+      W: x + x,
+      H: y + y,
+      L: -x,
+      T: -y,
+      TZ: z,
+      RY: -90,
+      BG: '#0FF',
+      A: a
+    });
+    $.C(box, {
+      W: x + x,
+      H: y + y,
+      L: -x,
+      T: -y,
+      TZ: z,
+      RY: 0,
+      BG: '#F0F',
+      A: a
+    });
+    $.C(box, {
+      W: x + x,
+      H: y + y,
+      L: -x,
+      T: -y,
+      TZ: z,
+      RY: 180,
+      BG: '#FF0',
+      A: a
+    });
+  }
+
+  function createControl(){
+    var step           = 1.2; //最小间隔,chrome实测,其他浏览器都取整数
+    move_up.onclick    = function(){
+      now_x = Math.round(main.scrollLeft);
+      now_y = Math.round(main.scrollTop);
+      dir_x = 0;
+      dir_y = step;
+      move();
+    };
+    move_down.onclick  = function(){
+      now_x = Math.round(main.scrollLeft);
+      now_y = Math.round(main.scrollTop);
+      dir_x = 0;
+      dir_y = -step;
+      move();
+    };
+    move_left.onclick  = function(){
+      now_x = Math.round(main.scrollLeft);
+      now_y = Math.round(main.scrollTop);
+      dir_x = step;
+      dir_y = 0;
+      move();
+    };
+    move_right.onclick = function(){
+      now_x = Math.round(main.scrollLeft);
+      now_y = Math.round(main.scrollTop);
+      dir_x = -step;
+      dir_y = 0;
+      move();
+    };
+    move_stop.onclick  = function(){
+      clearTimeout(window.timer);
+    };
+  }
+
+</script>
